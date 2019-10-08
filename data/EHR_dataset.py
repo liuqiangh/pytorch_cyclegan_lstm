@@ -20,19 +20,19 @@ class EHRDataset(BaseDataset):
         BaseDataset.__init__(self, opt)
         if opt.phase == 'val':
             dataset_now_orignal = list(csv.reader(
-                open(opt.dataroot+'/val_now.csv', 'r', encoding='utf-8-sig')))
+                open(opt.dataroot+'/val_false.csv', 'r', encoding='utf-8-sig')))
             dataset_last_orignal = list(csv.reader(
-                open(opt.dataroot+'/val_last.csv', 'r', encoding='utf-8-sig')))
+                open(opt.dataroot+'/val_true.csv', 'r', encoding='utf-8-sig')))
         elif opt.phase == 'test':
             dataset_now_orignal = list(csv.reader(
-                open(opt.dataroot+'/test_now.csv', 'r', encoding='utf-8-sig')))
+                open(opt.dataroot+'/test_false.csv', 'r', encoding='utf-8-sig')))
             dataset_last_orignal = list(csv.reader(
-                open(opt.dataroot+'/test_last.csv', 'r', encoding='utf-8-sig')))
+                open(opt.dataroot+'/test_true.csv', 'r', encoding='utf-8-sig')))
         else:
             dataset_now_orignal = list(csv.reader(
-                open(opt.dataroot+'/train_now.csv', 'r', encoding='utf-8-sig')))
+                open(opt.dataroot+'/train_false.csv', 'r', encoding='utf-8-sig')))
             dataset_last_orignal = list(csv.reader(
-                open(opt.dataroot+'/train_last.csv', 'r', encoding='utf-8-sig')))
+                open(opt.dataroot+'/train_true.csv', 'r', encoding='utf-8-sig')))
 
         # get the size of dataset A
         self.A_size = len(dataset_now_orignal)
@@ -77,7 +77,7 @@ def prepare_dataset(datafile):
     for data in datafile:
         numbers = data[0].split(',')
         numbers = list(map(float, numbers))
-        count = len(numbers)//10
-        dataset.append([numbers[i*10:i*10+10]
+        count = len(numbers)//27
+        dataset.append([numbers[i*27:i*27+27]
                         for i in range(count)])
     return dataset

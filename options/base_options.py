@@ -31,9 +31,11 @@ class BaseOptions():
         # model parameters
         parser.add_argument('--model', type=str, default='cycle_gan',
                             help='chooses which model to use. [cycle_gan | pix2pix | test | colorization]')
-        parser.add_argument('--input_nc', type=int, default=1,
+        parser.add_argument('--year_num', type=int, default=2,
+                            help='represent the number of year of input data')
+        parser.add_argument('--input_nc', type=int, default=2,
                             help='# of input image channels: 3 for RGB and 1 for grayscale')
-        parser.add_argument('--output_nc', type=int, default=1,
+        parser.add_argument('--output_nc', type=int, default=2,
                             help='# of output image channels: 3 for RGB and 1 for grayscale')
         parser.add_argument('--ngf', type=int, default=64,
                             help='# of gen filters in the last conv layer')

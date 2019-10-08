@@ -78,9 +78,9 @@ class CycleGANModel(BaseModel):
         # define networks (both Generators and discriminators)
         # The naming is different from those used in the paper.
         # Code (vs. paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
-        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
+        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.year_num, opt.batch_size, opt.ngf, opt.netG, opt.norm,
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
+        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.year_num, opt.batch_size, opt.ngf, opt.netG, opt.norm,
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:  # define discriminators
@@ -102,10 +102,14 @@ class CycleGANModel(BaseModel):
             self.criterionCycle = torch.nn.L1Loss()
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(
-            ), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(
-            ), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            # self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(
+            # ), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            # self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(
+            # ), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = torch.optim.RMSprop(itertools.chain(self.netG_A.parameters(
+            ), self.netG_B.parameters()), lr=opt.lr, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)
+            self.optimizer_D = torch.optim.RMSprop(itertools.chain(self.netD_A.parameters(
+            ), self.netD_B.parameters()), lr=opt.lr, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
 
@@ -198,6 +202,8 @@ class CycleGANModel(BaseModel):
 
     def optimize_parameters(self):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
+        self.netG_A.module.hidden = self.netG_A.module.init_hidden()
+        self.netG_B.module.hidden = self.netG_B.module.init_hidden()
         # forward
         self.forward()      # compute fake images and reconstruction images.
         # G_A and G_B
@@ -212,9 +218,9 @@ class CycleGANModel(BaseModel):
         self.backward_D_A()      # calculate gradients for D_A
         self.backward_D_B()      # calculate graidents for D_B
         self.optimizer_D.step()  # update D_A and D_B's weights
-    
+
     def val_criterion(self):
         """the criterion of validation"""
-        self.val_loss=self.criterionCycle(self.fake_B,self.real_B)
+        self.val_loss = self.criterionCycle(self.fake_B, self.real_B)
 
         return self.val_loss

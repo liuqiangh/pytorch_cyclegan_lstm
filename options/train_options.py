@@ -48,7 +48,7 @@ class TrainOptions(BaseOptions):
                             help='# of iter to linearly decay learning rate to zero')
         parser.add_argument('--beta1', type=float,
                             default=0.5, help='momentum term of adam')
-        parser.add_argument('--lr', type=float, default=0.0002,
+        parser.add_argument('--lr', type=float, default=0.00002,
                             help='initial learning rate for adam')
         parser.add_argument('--gan_mode', type=str, default='lsgan',
                             help='the type of GAN objective. [vanilla| lsgan | wgangp]. vanilla GAN loss is the cross-entropy objective used in the original GAN paper.')

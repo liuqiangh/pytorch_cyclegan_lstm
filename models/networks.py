@@ -118,7 +118,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_G(input_nc, output_nc, year_num, batch_size, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
     """Create a generator
 
     Parameters:
@@ -149,9 +149,10 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     norm_layer = get_norm_layer(norm_type=norm)
 
     if netG == 'resnet_9blocks':
-        net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+        # net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+        net = LSTMTagger(batch_size, year_num, hidden_dim=80, feature_size=27)
     elif netG == 'resnet_6blocks':
-        net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
+        net = LSTMTagger(batch_size, year_num, hidden_dim=80, feature_size=27)
     elif netG == 'unet_128':
         net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == 'unet_256':
@@ -539,32 +540,34 @@ class UnetSkipConnectionBlock(nn.Module):
             return torch.cat([x, self.model(x)], 1)
 
 class LSTMTagger(nn.Module):
-    """Defines a LSTM generator"""
 
-    def __init__(self, hidden_dim, feature_size):
+    def __init__(self, batch_size, year_num, hidden_dim, feature_size):
         super(LSTMTagger, self).__init__()
         self.hidden_dim = hidden_dim
-        self.lstm = nn.LSTM(input_size=feature_size,
-                            hidden_size=hidden_dim, num_layers=3,bidirectional=True)
-        self.hidden2tag = nn.Linear(hidden_dim, 2)
-        self.hidden = self.init_hidden()
+        self.batch_size=batch_size
+        self.year_num=year_num
         self.feature_size = feature_size
+        # self.batchNorm1 = nn.BatchNorm1d(feature_size)
+        self.lstm = nn.LSTM(input_size=feature_size,
+                            hidden_size=hidden_dim, num_layers=1)
+        # self.batchNorm2 = nn.BatchNorm1d(hidden_dim)
+        self.hidden2tag = nn.Linear(hidden_dim, 27)
+        self.hidden = self.init_hidden()
 
-    def init_hidden(self, num_layers=3):
+    def init_hidden(self, num_layers=1):
         #h_n (num_layers * num_directions, batch, hidden_size)
-        return (autograd.Variable(torch.zeros(num_layers, 1, self.hidden_dim)),
-                autograd.Variable(torch.zeros(num_layers, 1, self.hidden_dim)))
+        return (autograd.Variable(torch.zeros(num_layers, self.batch_size, self.hidden_dim)).cuda(),
+                autograd.Variable(torch.zeros(num_layers, self.batch_size, self.hidden_dim)).cuda())
 
     def forward(self, input):
-        # bn1 = self.batchNorm1(sentence)
         lstm_out, (hn, cn) = self.lstm(
-            input.view(len(input), 1, -1), self.hidden)
-        hn = F.dropout(hn, p=0.5)
-        # bn2 = self.batchNorm2(hn)
-        tag_space = self.hidden2tag(hn[-1, :, :].view(1, -1))
-        tag_space = F.dropout(tag_space, p=0.5)
-        tag_scores = F.softmax(tag_space, dim=1)
-        return tag_scores
+            input.view(self.year_num, self.batch_size, -1), self.hidden)
+        print(lstm_out)
+        lstm_out = F.dropout(lstm_out, p=0.5)
+        tag_space = self.hidden2tag(lstm_out.view(self.batch_size,self.year_num, -1))
+        # tag_scores = F.leaky_relu(tag_space)
+        # print(tag_space)
+        return tag_space
 
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""

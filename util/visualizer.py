@@ -17,11 +17,16 @@ else:
 def save_results(data_path, visuals):
     datas = []
     for label, data in visuals.items():
-        print(label)
         data_cpu = data.cpu()
         data_array = data_cpu.detach().numpy()
         data_array = np.squeeze(data_array)
-        data_str = ",".join(map(str, data_array))
+        # data_str = ",".join(map(str, data_array))
+        data_str = ''
+        for i in range(len(data_array)):
+            if i == 0:
+                data_str = ",".join(map(str, data_array[i]))
+            else:
+                data_str = data_str+',' + ",".join(map(str, data_array[i]))
         datas.append(data_str)
     if not os.path.exists(data_path):
         os.makedirs(data_path)

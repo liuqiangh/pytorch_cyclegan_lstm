@@ -24,20 +24,27 @@ from options.test_options import TestOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
+from util.visualizer import save_results
 import numpy as np
+import os
 
-def validation(opt,dataset,model):
+
+def validation(opt, dataset, model):
     if opt.eval:
         model.eval()
-    val_loss=[]
+    val_loss = []
+    web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (
+        opt.phase, epoch))  # define the directory of results
     for i, data in enumerate(dataset):
         if i >= opt.num_test:  # only apply our model to opt.num_test images.
             break
         model.set_input(data)  # unpack data from data loader
         model.test()           # run inference
         val_loss.append(model.val_criterion())
+        # visuals = model.get_current_visuals()  # get generating results
+        # save_results(web_dir, visuals)  # save generating results
 
-    mean_loss=np.mean(val_loss)
+    mean_loss = np.mean(val_loss)
 
     if least_loss:
         if mean_loss < min(least_loss):
@@ -45,9 +52,10 @@ def validation(opt,dataset,model):
             model.save_networks('best_' + str(epoch))
             least_loss.append(mean_loss)
     else:
+        print("Saving model with new least loss: ", mean_loss)
         least_loss.append(mean_loss)
         model.save_networks('best_' + str(epoch))
-        
+
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
@@ -56,15 +64,19 @@ if __name__ == '__main__':
     dataset_size = len(dataset)    # get the number of images in the dataset.
     print('The number of training data = %d' % dataset_size)
 
-    #validation
+    # validation
     opt_val = TestOptions().parse()  # get test options
     # hard-code some parameters for test
     opt_val.num_threads = 0   # test code only supports num_threads = 1
     opt_val.batch_size = 1    # test code only supports batch_size = 1
-    opt_val.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-    opt_val.no_flip = True    # no flip; comment this line if results on flipped images are needed.
-    opt_val.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
-    dataset_val = create_dataset(opt_val)  # create a dataset given opt.dataset_mode and other options
+    # disable data shuffling; comment this line if results on randomly chosen images are needed.
+    opt_val.serial_batches = True
+    # no flip; comment this line if results on flipped images are needed.
+    opt_val.no_flip = True
+    # no visdom display; the test code saves the results to a HTML file.
+    opt_val.display_id = -1
+    # create a dataset given opt.dataset_mode and other options
+    dataset_val = create_dataset(opt_val)
     least_loss = []
 
     # create a model given opt.model and other options
@@ -125,6 +137,6 @@ if __name__ == '__main__':
               (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
         # update learning rates at the end of every epoch.
 
-        validation(opt_val,dataset_val,model)
+        # validation(opt_val, dataset_val, model)
 
         model.update_learning_rate()
